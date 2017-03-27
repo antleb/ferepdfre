@@ -33,17 +33,13 @@ import java.util.concurrent.Executors;
 public class FerePdfRe {
 
     public static void main(String[] args) throws ISLookUpException, ObjectStoreServiceException, ResultSetException, NoSuchAlgorithmException, KeyManagementException, IOException {
-//        String objectStoreAddress = "https://beta.services.openaire.eu:8280/is/services/objectStore";
-//        String rsAddress = "https://beta.services.openaire.eu:8280/is/services/resultSet";
+        String objectStoreAddress = "https://services.openaire.eu:8280/is/services/objectStore";
+        String rsAddress = "https://services.openaire.eu:8280/is/services/resultSet";
 
         ExecutorService service = Executors.newFixedThreadPool(Integer.parseInt(args[0]));
 
-        String objectStoreAddress = "http://localhost:8888/is/services/objectStore";
-        String rsAddress = "http://localhost:8888/is/services/resultSet";
-
-        long timeout = 600000L;
-
-        //ssl();
+//        String objectStoreAddress = "http://localhost:8888/is/services/objectStore";
+//        String rsAddress = "http://localhost:8888/is/services/resultSet";
 
         ObjectStoreService storeService;
         ResultSetService rsService;
@@ -56,34 +52,17 @@ public class FerePdfRe {
         factory.setAddress(objectStoreAddress);
         storeService = (ObjectStoreService) factory.create();
 
-//        Client client = ClientProxy.getClient(objectStoreAddress);
-//        if (client != null) {
-//            HTTPConduit conduit = (HTTPConduit) client.getConduit();
-//            HTTPClientPolicy policy = new HTTPClientPolicy();
-//            policy.setConnectionTimeout(timeout);
-//            policy.setReceiveTimeout(timeout);
-//            conduit.setClient(policy);
-//        }
-
         factory = new JaxWsProxyFactoryBean();
         factory.setServiceClass(ResultSetService.class);
         factory.setAddress(rsAddress);
         rsService = (ResultSetService) factory.create();
 
-//        client = ClientProxy.getClient(rsService    );
-//        if (client != null) {
-//            HTTPConduit conduit = (HTTPConduit) client.getConduit();
-//            HTTPClientPolicy policy = new HTTPClientPolicy();
-//            policy.setConnectionTimeout(timeout);
-//            policy.setReceiveTimeout(timeout);
-//            conduit.setClient(policy);
-//        }
 
         List<String> stores = storeService.getListOfObjectStores();
 
         for (String store : stores) {
             W3CEndpointReference w3cEpr = storeService.deliverObjects(store, 0L, new Date().getTime());
-            
+
 
             EPR epr = EPRUtils.createEPR(w3cEpr);
             String rsId = epr.getParameter("ResourceIdentifier");
@@ -114,9 +93,10 @@ public class FerePdfRe {
                             @Override
                             public void run() {
                                 String filename = md.getObjectID().substring(0, md.getObjectID().lastIndexOf("::")) + ".pdf";
-                                String url = md.getURI().replace("http://services.openaire.eu:8280", "http://localhost:8888");
+//                                String url = md.getURI().replace("http://services.openaire.eu:8280", "http://localhost:8888");
+                                String url = md.getURI();
 
-                                System.out.println(Thread.currentThread().getName() + " - " + filename);
+//                                System.out.println(Thread.currentThread().getName() + " - " + filename);
 
 
                                 try {
