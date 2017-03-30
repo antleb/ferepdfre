@@ -33,8 +33,8 @@ import java.util.concurrent.Executors;
 public class FerePdfRe {
 
     public static void main(String[] args) throws ISLookUpException, ObjectStoreServiceException, ResultSetException, NoSuchAlgorithmException, KeyManagementException, IOException {
-        String objectStoreAddress = "https://services.openaire.eu:8280/is/services/objectStore";
-        String rsAddress = "https://services.openaire.eu:8280/is/services/resultSet";
+        String objectStoreAddress = "http://services.openaire.eu:8280/is/services/objectStore";
+        String rsAddress = "http://services.openaire.eu:8280/is/services/resultSet";
 
         ExecutorService service = Executors.newFixedThreadPool(Integer.parseInt(args[0]));
 
@@ -96,7 +96,7 @@ public class FerePdfRe {
 //                                String url = md.getURI().replace("http://services.openaire.eu:8280", "http://localhost:8888");
                                 String url = md.getURI();
 
-//                                System.out.println(Thread.currentThread().getName() + " - " + filename);
+                                System.out.println(Thread.currentThread().getName() + " - " + filename);
 
 
                                 try {
