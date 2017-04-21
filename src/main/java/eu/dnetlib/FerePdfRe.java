@@ -17,6 +17,8 @@ import org.apache.cxf.transport.http.HTTPConduit;
 import org.apache.cxf.transports.http.configuration.HTTPClientPolicy;
 
 import javax.xml.ws.wsaddressing.W3CEndpointReference;
+
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
@@ -26,6 +28,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+
 
 /**
  * Created by antleb on 11/8/14.
@@ -95,16 +99,28 @@ public class FerePdfRe {
                                 String filename = md.getObjectID().substring(0, md.getObjectID().lastIndexOf("::")) + ".pdf";
 //                                String url = md.getURI().replace("http://services.openaire.eu:8280", "http://localhost:8888");
                                 String url = md.getURI();
+                                System.out.println(Thread.currentThread().getName() + " - " + filename);                                                              
 
-                                System.out.println(Thread.currentThread().getName() + " - " + filename);
-
-
+                                FileOutputStream fos = null;
+                                FileInputStream fis = null;
                                 try {
-                                    FileOutputStream fos = new FileOutputStream("/tmp/media/pdfs/" + filename);
-                                    IOUtils.copyLarge(new URL(url).openStream(), fos);
+                                	// Get publication file
+                                    fos = new FileOutputStream("/tmp/media/pdfs/" + filename);
+                                    fis = (FileInputStream) new URL(url).openStream();
+                                    IOUtils.copyLarge(fis, fos);
+                                    fos.close();
+                                    fis.close();
+                                    
+                                    // 
+                                    
                                 } catch (IOException e) {
                                     e.printStackTrace();
+                                } finally {
+                                	IOUtils.closeQuietly(fos);
+                                	IOUtils.closeQuietly(fis);
                                 }
+                                
+                                
                             }
                         });
                     }
