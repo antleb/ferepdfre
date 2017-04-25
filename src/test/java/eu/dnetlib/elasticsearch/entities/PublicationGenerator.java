@@ -29,9 +29,6 @@ public class PublicationGenerator {
 		// openaireId
 		String openaireID = UUID.randomUUID().toString();
 		pub.setOpenaireId(openaireID);
-		if (id == 3) {
-			System.out.println(openaireID);
-		}
 		// MimeType
 		pub.setMimeType("application/pdf");
 	    // pathToFile

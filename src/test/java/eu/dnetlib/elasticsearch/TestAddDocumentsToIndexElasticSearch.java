@@ -8,23 +8,23 @@ import java.util.concurrent.Executors;
 import eu.dnetlib.elasticsearch.entities.Publication;
 import eu.dnetlib.elasticsearch.entities.PublicationGenerator;
 import io.searchbox.client.JestClient;
+import io.searchbox.client.JestResult;
+import io.searchbox.client.JestResultHandler;
 import io.searchbox.core.DocumentResult;
 import io.searchbox.core.Get;
 import io.searchbox.core.Index;
 
-public class TestAddElasticSearchOpenaire {
+public class TestAddDocumentsToIndexElasticSearch {
 
-	public static void main(String[] args) throws IOException, NoSuchFieldException {
+	public static void main(String[] args) throws Exception {
 		
-		final String host = "http://localhost";
-		final String port = "9200";
-		final String indexES = "openaire";
-		final String documentType = "docMeta";
-		final String pathToPdf = "/home/gkirtzou/Desktop/tmp/pdfs/";
-
-		
-		ElasticSearchConfiguration configES = new ElasticSearchConfiguration(host, port);
+		ElasticSearchConfiguration esConfig =  new ElasticSearchConfiguration();
+		ElasticSearchConnection configES = new ElasticSearchConnection(esConfig.getHost(), esConfig.getPort());
 		final JestClient client = configES.client();
+		
+		final String pathToPdf = "/home/gkirtzou/Desktop/tmp/pdfs/";
+		final String indexES = esConfig.getIndex();
+		final String documentType = esConfig.getDocumentType();
 
 		ExecutorService service = Executors.newFixedThreadPool(2);
 		
@@ -32,7 +32,7 @@ public class TestAddElasticSearchOpenaire {
 		final PublicationGenerator pubGenerator = new PublicationGenerator(pathToPdf, 9);
 		for (int i = 0; i < 10; i++) {
 			service.submit(new Runnable() {
-                   @Override
+            //       @Override
                    public void run() {
                 	   try {
 	                	   System.out.println(Thread.currentThread().getName());
@@ -40,10 +40,13 @@ public class TestAddElasticSearchOpenaire {
 	                	   String id = doc.getOpenaireId();
 				
 	                	   Index index = new Index.Builder(doc).index(indexES).type(documentType).id(id).build();
-	                	   client.execute(index);
+	                	   client.executeAsync(index, new MyJestResultHandler());
+	                	   /*
 	                	   Get get = new Get.Builder(indexES, id).type(documentType).build();
+	                	 
 	                	   DocumentResult resultJest = client.execute(get);
-	                	   System.out.println(Thread.currentThread().getName() + "-->"+resultJest.getJsonString());
+	                	   System.out.println(Thread.currentThread().getName() + "-->" +resultJest.getJsonString()); 
+	                	   */
 	                   }
                 	   catch(IOException e) {
                            e.printStackTrace();

@@ -91,7 +91,7 @@ public class TestElasticNet {
 		
 		System.out.println(responseSearch.toString());
 		SearchHit[] hits = responseSearch.getHits().hits();
-		System.out.println(hits.);
+		
 		
 		// on shutdown
 		client.close();
