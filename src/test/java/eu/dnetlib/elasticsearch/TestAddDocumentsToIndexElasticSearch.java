@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-
 import eu.dnetlib.elasticsearch.entities.Publication;
 import eu.dnetlib.elasticsearch.entities.PublicationGenerator;
 import io.searchbox.client.JestClient;
@@ -34,15 +33,9 @@ public class TestAddDocumentsToIndexElasticSearch {
 	                	   System.out.println(Thread.currentThread().getName());
 	                	   Publication doc = pubGenerator.generatePublication();
 	                	   String id = doc.getOpenaireId();
-				
+	       	                	
 	                	   Index index = new Index.Builder(doc).index(indexES).type(documentType).id(id).build();
-	                	   client.executeAsync(index, new MyJestResultHandler());
-	                	   /*
-	                	   Get get = new Get.Builder(indexES, id).type(documentType).build();
-	                	 
-	                	   DocumentResult resultJest = client.execute(get);
-	                	   System.out.println(Thread.currentThread().getName() + "-->" +resultJest.getJsonString()); 
-	                	   */
+	                	   client.executeAsync(index, new MyJestResultHandler());	                	
 	                   }
                 	   catch(IOException e) {
                            e.printStackTrace();

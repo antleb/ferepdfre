@@ -13,6 +13,7 @@ import eu.dnetlib.enabling.is.lookup.rmi.ISLookUpException;
 import eu.dnetlib.enabling.resultset.rmi.ResultSetException;
 import eu.dnetlib.enabling.resultset.rmi.ResultSetService;
 import eu.dnetlib.utils.EPRUtils;
+import eu.dnetlib.utils.ExtensionResolver;
 import io.searchbox.client.JestClient;
 import io.searchbox.core.Index;
 
@@ -43,13 +44,13 @@ import java.util.concurrent.Executors;
  */
 public class FerePdfRe {
 
-    public static void main(String[] args) throws ISLookUpException, ObjectStoreServiceException, ResultSetException, NoSuchAlgorithmException, KeyManagementException, IOException {
+    public static void main(String[] args) throws ISLookUpException, ObjectStoreServiceException, ResultSetException, NoSuchAlgorithmException, KeyManagementException, IOException, Exception {
     	// Connect to the Elastic Search via Jest Client
     	ElasticSearchConfiguration esConfig =  ElasticSearchConfiguration.getInstance();
 		ElasticSearchConnection configES = new ElasticSearchConnection(esConfig.getHost(), esConfig.getPort());
 		final JestClient client = configES.client();
 		
-		final String pathToFile = "/tmp/media/pdfs/";
+		final String pathToFile = "/media/openaire/pdfs/";
 		final String indexES = esConfig.getIndex();
 		final String documentType = esConfig.getDocumentType();
     	  
@@ -112,17 +113,20 @@ public class FerePdfRe {
                             @Override
                             public void run() {
                             	
-                                String filename = md.getObjectID().substring(0, md.getObjectID().lastIndexOf("::")) + ".pdf";
+                                String filename = md.getObjectID().substring(0, md.getObjectID().lastIndexOf("::"));
+                                String extension = ExtensionResolver.getExtension(md.getMimeType());
 //                                String url = md.getURI().replace("http://services.openaire.eu:8280", "http://localhost:8888");
                                 String url = md.getURI();
-                                System.out.println(Thread.currentThread().getName() + " - " + md.getObjectID() + " with MimeType :: " + md.getMimeType());
-                                
+                                System.out.println(Thread.currentThread().getName() + " - " + md.getObjectID() + 
+                                					" with MimeType :: " + md.getMimeType() + 
+                                					" extension::" + ExtensionResolver.getExtension(md.getMimeType()));
+     	                	       	                	   
 /*
                                 FileOutputStream fos = null;
                                 FileInputStream fis = null;
                                 try {
                                 	// Get publication file
-                                    fos = new FileOutputStream(pathToFile + filename);
+                                    fos = new FileOutputStream(pathToFile + filename + extension);
                                     fis = (FileInputStream) new URL(url).openStream();
                                     IOUtils.copyLarge(fis, fos);
                                     fos.close();
@@ -133,8 +137,8 @@ public class FerePdfRe {
                                     pub.setOpenaireId(md.getObjectID());
                                     pub.setMimeType(md.getMimeType());
                                     pub.setHashValue(md.getMd5Sum());
-                                    pub.setPathToFile(pathToFile + filename);
-                                    
+                                    pub.setPathToFile(pathToFile + filename + extension);
+                                    System.out.println(Thread.currentThread().getName() + " " + pub); 
                                     
                                     // Add publication to Elastic Search index
                                     Index index = new Index.Builder(pub).index(indexES).type(documentType).id(md.getObjectID()).build();
