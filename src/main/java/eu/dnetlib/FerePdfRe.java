@@ -5,10 +5,17 @@ import eu.dnetlib.data.objectstore.rmi.ObjectStoreFile;
 import eu.dnetlib.data.objectstore.rmi.ObjectStoreService;
 import eu.dnetlib.data.objectstore.rmi.ObjectStoreServiceException;
 import eu.dnetlib.domain.EPR;
+import eu.dnetlib.elasticsearch.ElasticSearchConfiguration;
+import eu.dnetlib.elasticsearch.ElasticSearchConnection;
+import eu.dnetlib.elasticsearch.MyJestResultHandler;
+import eu.dnetlib.elasticsearch.entities.Publication;
 import eu.dnetlib.enabling.is.lookup.rmi.ISLookUpException;
 import eu.dnetlib.enabling.resultset.rmi.ResultSetException;
 import eu.dnetlib.enabling.resultset.rmi.ResultSetService;
 import eu.dnetlib.utils.EPRUtils;
+import io.searchbox.client.JestClient;
+import io.searchbox.core.Index;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.cxf.endpoint.Client;
 import org.apache.cxf.frontend.ClientProxy;
@@ -37,13 +44,21 @@ import java.util.concurrent.Executors;
 public class FerePdfRe {
 
     public static void main(String[] args) throws ISLookUpException, ObjectStoreServiceException, ResultSetException, NoSuchAlgorithmException, KeyManagementException, IOException {
-        String objectStoreAddress = "http://services.openaire.eu:8280/is/services/objectStore";
-        String rsAddress = "http://services.openaire.eu:8280/is/services/resultSet";
-
+    	// Connect to the Elastic Search via Jest Client
+    	ElasticSearchConfiguration esConfig =  ElasticSearchConfiguration.getInstance();
+		ElasticSearchConnection configES = new ElasticSearchConnection(esConfig.getHost(), esConfig.getPort());
+		final JestClient client = configES.client();
+		
+		final String pathToFile = "/tmp/media/pdfs/";
+		final String indexES = esConfig.getIndex();
+		final String documentType = esConfig.getDocumentType();
+    	  
+		// Multithread
         ExecutorService service = Executors.newFixedThreadPool(Integer.parseInt(args[0]));
 
-//        String objectStoreAddress = "http://localhost:8888/is/services/objectStore";
-//        String rsAddress = "http://localhost:8888/is/services/resultSet";
+       	// Openaire services
+        String objectStoreAddress = "http://services.openaire.eu:8280/is/services/objectStore";
+        String rsAddress = "http://services.openaire.eu:8280/is/services/resultSet";
 
         ObjectStoreService storeService;
         ResultSetService rsService;
@@ -96,22 +111,34 @@ public class FerePdfRe {
                         service.submit(new Runnable() {
                             @Override
                             public void run() {
+                            	
                                 String filename = md.getObjectID().substring(0, md.getObjectID().lastIndexOf("::")) + ".pdf";
 //                                String url = md.getURI().replace("http://services.openaire.eu:8280", "http://localhost:8888");
                                 String url = md.getURI();
-                                System.out.println(Thread.currentThread().getName() + " - " + filename);                                                              
-
+                                System.out.println(Thread.currentThread().getName() + " - " + md.getObjectID() + " with MimeType :: " + md.getMimeType());
+                                
+/*
                                 FileOutputStream fos = null;
                                 FileInputStream fis = null;
                                 try {
                                 	// Get publication file
-                                    fos = new FileOutputStream("/tmp/media/pdfs/" + filename);
+                                    fos = new FileOutputStream(pathToFile + filename);
                                     fis = (FileInputStream) new URL(url).openStream();
                                     IOUtils.copyLarge(fis, fos);
                                     fos.close();
                                     fis.close();
                                     
-                                    // 
+                                    // Create Publication document for Elastic Search
+                                    Publication pub = new Publication();
+                                    pub.setOpenaireId(md.getObjectID());
+                                    pub.setMimeType(md.getMimeType());
+                                    pub.setHashValue(md.getMd5Sum());
+                                    pub.setPathToFile(pathToFile + filename);
+                                    
+                                    
+                                    // Add publication to Elastic Search index
+                                    Index index = new Index.Builder(pub).index(indexES).type(documentType).id(md.getObjectID()).build();
+                                    client.executeAsync(index, new MyJestResultHandler());        	                
                                     
                                 } catch (IOException e) {
                                     e.printStackTrace();
@@ -119,7 +146,7 @@ public class FerePdfRe {
                                 	IOUtils.closeQuietly(fos);
                                 	IOUtils.closeQuietly(fis);
                                 }
-                                
+                                */
                                 
                             }
                         });
