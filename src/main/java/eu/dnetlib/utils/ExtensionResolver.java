@@ -2,6 +2,10 @@ package eu.dnetlib.utils;
 
 import java.io.File;
 
+/*
+ * A very basic resolver for file extension. 
+ * It only returns .pdf 
+ */
 public class ExtensionResolver {
 
 	static public String getExtension(File file) {

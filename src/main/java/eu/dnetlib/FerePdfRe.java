@@ -76,7 +76,7 @@ public class FerePdfRe {
         factory.setServiceClass(ResultSetService.class);
         factory.setAddress(rsAddress);
         rsService = (ResultSetService) factory.create();
-
+       
 
         List<String> stores = storeService.getListOfObjectStores();
 
@@ -119,7 +119,7 @@ public class FerePdfRe {
                                 String url = md.getURI();
                                 System.out.println(Thread.currentThread().getName() + " - " + md.getObjectID()); 
      	                	       	                	   
-/*
+
                                 FileOutputStream fos = null;
                                 FileInputStream fis = null;
                                 try {
@@ -129,7 +129,7 @@ public class FerePdfRe {
                                     IOUtils.copyLarge(fis, fos);
                                     fos.close();
                                     fis.close();
-  */                                  
+                                    
                                     // Create Publication document for Elastic Search
                                     Publication pub = new Publication();
                                     pub.setOpenaireId(md.getObjectID());
@@ -137,7 +137,7 @@ public class FerePdfRe {
                                     pub.setHashValue(md.getMd5Sum());
                                     pub.setPathToFile(pathToFile + filename + extension);
                                     System.out.println(Thread.currentThread().getName() + " " + pub); 
-    /*                                
+                                    
                                     // Add publication to Elastic Search index
                                     Index index = new Index.Builder(pub).index(indexES).type(documentType).id(md.getObjectID()).build();
                                     client.executeAsync(index, new MyJestResultHandler());        	                
@@ -148,7 +148,7 @@ public class FerePdfRe {
                                 	IOUtils.closeQuietly(fos);
                                 	IOUtils.closeQuietly(fis);
                                 }
-                                */
+                                
                                 
                             }
                         });
