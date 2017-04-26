@@ -117,9 +117,7 @@ public class FerePdfRe {
                                 String extension = ExtensionResolver.getExtension(md.getMimeType());
 //                                String url = md.getURI().replace("http://services.openaire.eu:8280", "http://localhost:8888");
                                 String url = md.getURI();
-                                System.out.println(Thread.currentThread().getName() + " - " + md.getObjectID() + 
-                                					" with MimeType :: " + md.getMimeType() + 
-                                					" extension::" + ExtensionResolver.getExtension(md.getMimeType()));
+                                System.out.println(Thread.currentThread().getName() + " - " + md.getObjectID()); 
      	                	       	                	   
 /*
                                 FileOutputStream fos = null;
@@ -131,7 +129,7 @@ public class FerePdfRe {
                                     IOUtils.copyLarge(fis, fos);
                                     fos.close();
                                     fis.close();
-                                    
+  */                                  
                                     // Create Publication document for Elastic Search
                                     Publication pub = new Publication();
                                     pub.setOpenaireId(md.getObjectID());
@@ -139,7 +137,7 @@ public class FerePdfRe {
                                     pub.setHashValue(md.getMd5Sum());
                                     pub.setPathToFile(pathToFile + filename + extension);
                                     System.out.println(Thread.currentThread().getName() + " " + pub); 
-                                    
+    /*                                
                                     // Add publication to Elastic Search index
                                     Index index = new Index.Builder(pub).index(indexES).type(documentType).id(md.getObjectID()).build();
                                     client.executeAsync(index, new MyJestResultHandler());        	                
