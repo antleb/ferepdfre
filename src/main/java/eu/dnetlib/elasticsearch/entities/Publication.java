@@ -9,6 +9,7 @@ public class Publication {
 	private String hashValue;
 	private String mimeType;
 	private String pathToFile;
+	private String url;
 	
 	public Publication() {
 		this.openaireId = null;
@@ -17,7 +18,7 @@ public class Publication {
 		this.pathToFile = null;
 	}
 	
-	public Publication(String id, String hash, String mimeType, String pathToFile) {
+	public Publication(String id, String hash, String mimeType, String pathToFile, String url) {
 		this.openaireId = id;
 		this.hashValue = hash;
 		this.mimeType = mimeType;
@@ -56,12 +57,21 @@ public class Publication {
 		this.pathToFile = pathToFile;
 	}
 	
+	public String getUrl() {
+		return url;
+	}
+
+	public void setUrl(String url) {
+		this.url = url;
+	}
+	
 	@Override
 	public String toString() {
 		return "[Publication " + this.openaireId + 
 				" hash::" + this.hashValue +
 				" mimeType::" + this.mimeType +
 				" path::" + this.pathToFile +
+				" url::" + this.url +
 				"]";
 		
 	}

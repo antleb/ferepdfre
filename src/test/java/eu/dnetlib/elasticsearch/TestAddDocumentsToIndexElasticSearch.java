@@ -18,13 +18,14 @@ public class TestAddDocumentsToIndexElasticSearch {
 		final JestClient client = configES.client();
 		
 		final String pathToPdf = "/home/gkirtzou/Desktop/tmp/pdfs/";
+		final String urlDomain = "http://adonis.athenarc.gr/openaire/pdfs/";
 		final String indexES = esConfig.getIndex();
 		final String documentType = esConfig.getDocumentType();
 
 		ExecutorService service = Executors.newFixedThreadPool(2);
 		
 		// Add publications
-		final PublicationGenerator pubGenerator = new PublicationGenerator(pathToPdf, 9);
+		final PublicationGenerator pubGenerator = new PublicationGenerator(pathToPdf, urlDomain, 9);
 		for (int i = 0; i < 10; i++) {
 			service.submit(new Runnable() {
             //       @Override

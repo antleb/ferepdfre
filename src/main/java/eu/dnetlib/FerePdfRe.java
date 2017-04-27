@@ -14,9 +14,11 @@ import eu.dnetlib.enabling.resultset.rmi.ResultSetException;
 import eu.dnetlib.enabling.resultset.rmi.ResultSetService;
 import eu.dnetlib.utils.EPRUtils;
 import eu.dnetlib.utils.ExtensionResolver;
+import eu.openminted.omtdcache.CacheDataIDMD5;
 import io.searchbox.client.JestClient;
 import io.searchbox.core.Index;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.cxf.endpoint.Client;
 import org.apache.cxf.frontend.ClientProxy;
@@ -26,6 +28,7 @@ import org.apache.cxf.transports.http.configuration.HTTPClientPolicy;
 
 import javax.xml.ws.wsaddressing.W3CEndpointReference;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -34,6 +37,7 @@ import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -50,9 +54,12 @@ public class FerePdfRe {
         ElasticSearchConnection configES = new ElasticSearchConnection(esConfig.getHost(), esConfig.getPort());
         final JestClient client = configES.client();
 	
-        final String pathToFile = "/media/openaire/pdfs/";
+                
         final String indexES = esConfig.getIndex();
         final String documentType = esConfig.getDocumentType();
+        final String pathToFiles = getPathToFiles();
+        final String urlDomain = getDomainURL();
+        final CacheDataIDMD5 md5Calculator = new CacheDataIDMD5();
     	  
         // Multithread
         ExecutorService service = Executors.newFixedThreadPool(Integer.parseInt(args[0]));
@@ -121,16 +128,25 @@ public class FerePdfRe {
                                 FileOutputStream fos = null;
                                 try {
                                      // Get publication file
-                                    fos = new FileOutputStream(pathToFile + filename + extension);
+                                    fos = new FileOutputStream(pathToFiles + filename + extension);
                                     IOUtils.copyLarge(new URL(url).openStream(), fos);
                                     fos.close();
                                   
                                     // Create Publication document for Elastic Search
                                     Publication pub = new Publication();
+                                    // openaireId
                                     pub.setOpenaireId(filename);
+                                    // mimeType
                                     pub.setMimeType(md.getMimeType());
-                                    pub.setHashValue(md.getMd5Sum());
-                                    pub.setPathToFile(pathToFile + filename + extension);
+                                    // path to file
+                                    String pathToFile = pathToFiles + filename + extension;  
+                                    pub.setPathToFile(pathToFile);
+                                    // hash value
+                                    byte[] file = FileUtils.readFileToByteArray(new File(pathToFile));
+                            		String hashValue = md5Calculator.getID(file); 
+                                    pub.setHashValue(hashValue);
+                                    // URL to file
+                                    pub.setUrl(urlDomain + filename + extension);
                                     System.out.println(Thread.currentThread().getName() + " " + pub); 
                                     
                                     // Add publication to Elastic Search index
@@ -141,9 +157,7 @@ public class FerePdfRe {
                                      e.printStackTrace();
                                 }  finally {
                                      IOUtils.closeQuietly(fos);                                     
-                                }
-                                    
-                                
+                                }                                                                   
                             }
                         });
                     }
@@ -152,6 +166,32 @@ public class FerePdfRe {
 
         }
      	service.shutdown();
-	client.shutdownClient();
+     	client.shutdownClient();
     }
+    
+    private static String getDomainURL() throws IOException {
+		Properties configFile = new Properties();
+		configFile.load(ElasticSearchConfiguration.class.getClassLoader().getResourceAsStream("publicationConfig.properties"));
+		
+		String domainURL = configFile.getProperty("domainURL");
+	    if (domainURL != null) {
+	    	domainURL = domainURL.trim();
+	    } else {
+	    	domainURL = "http://localhost/";
+	    }	   
+	    return domainURL;
+    }
+    
+    private static String getPathToFiles() throws IOException {
+  		Properties configFile = new Properties();
+  		configFile.load(ElasticSearchConfiguration.class.getClassLoader().getResourceAsStream("publicationConfig.properties"));
+  		    
+		String pathToFiles = configFile.getProperty("pathToFiles");
+	    if (pathToFiles != null) {
+	    	pathToFiles = pathToFiles.trim();
+	    } else {
+	    	pathToFiles = "/media/openaire/pdfs";
+	    }	   
+	    return pathToFiles;
+	}
 }
