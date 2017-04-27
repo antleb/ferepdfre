@@ -57,8 +57,8 @@ public class FerePdfRe {
                 
         final String indexES = esConfig.getIndex();
         final String documentType = esConfig.getDocumentType();
-        final String pathToFiles = getPathToFiles();
-        final String urlDomain = getDomainURL();
+        final String pathToFiles = FerePdfRe.getPathToFiles();
+        final String urlDomain = FerePdfRe.getDomainURL();
         final CacheDataIDMD5 md5Calculator = new CacheDataIDMD5();
     	  
         // Multithread
@@ -170,28 +170,30 @@ public class FerePdfRe {
     }
     
     private static String getDomainURL() throws IOException {
-		Properties configFile = new Properties();
-		configFile.load(ElasticSearchConfiguration.class.getClassLoader().getResourceAsStream("publicationConfig.properties"));
+         
+         Properties configFile = new Properties();
+         configFile.load(FerePdfRe.class.getClassLoader().getResourceAsStream("publicationConfig.properties"));
 		
-		String domainURL = configFile.getProperty("domainURL");
-	    if (domainURL != null) {
-	    	domainURL = domainURL.trim();
-	    } else {
+         String domainURL = configFile.getProperty("domainURL");
+         if (domainURL != null) {
+              domainURL = domainURL.trim();
+         } else {
 	    	domainURL = "http://localhost/";
-	    }	   
-	    return domainURL;
+         }	   
+         return domainURL;
     }
     
     private static String getPathToFiles() throws IOException {
-  		Properties configFile = new Properties();
-  		configFile.load(ElasticSearchConfiguration.class.getClassLoader().getResourceAsStream("publicationConfig.properties"));
-  		    
-		String pathToFiles = configFile.getProperty("pathToFiles");
-	    if (pathToFiles != null) {
-	    	pathToFiles = pathToFiles.trim();
-	    } else {
+         Properties configFile = new Properties();
+         configFile.load(ElasticSearchConfiguration.class.getClassLoader().getResourceAsStream("publicationConfig.properties"));
+         
+         String pathToFiles = configFile.getProperty("pathToFiles");
+         if (pathToFiles != null) {
+              pathToFiles = pathToFiles.trim();
+         } else {
 	    	pathToFiles = "/media/openaire/pdfs";
-	    }	   
-	    return pathToFiles;
-	}
+         }	   
+
+         return pathToFiles;
+    }
 }
