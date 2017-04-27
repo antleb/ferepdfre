@@ -47,14 +47,14 @@ public class FerePdfRe {
     public static void main(String[] args) throws ISLookUpException, ObjectStoreServiceException, ResultSetException, NoSuchAlgorithmException, KeyManagementException, IOException, Exception {
     	// Connect to the Elastic Search via Jest Client
     	ElasticSearchConfiguration esConfig =  ElasticSearchConfiguration.getInstance();
-		ElasticSearchConnection configES = new ElasticSearchConnection(esConfig.getHost(), esConfig.getPort());
-		final JestClient client = configES.client();
-		
-		final String pathToFile = "/media/openaire/pdfs/";
-		final String indexES = esConfig.getIndex();
-		final String documentType = esConfig.getDocumentType();
+        ElasticSearchConnection configES = new ElasticSearchConnection(esConfig.getHost(), esConfig.getPort());
+        final JestClient client = configES.client();
+	
+        final String pathToFile = "/media/openaire/pdfs/";
+        final String indexES = esConfig.getIndex();
+        final String documentType = esConfig.getDocumentType();
     	  
-		// Multithread
+        // Multithread
         ExecutorService service = Executors.newFixedThreadPool(Integer.parseInt(args[0]));
 
        	// Openaire services
@@ -108,47 +108,41 @@ public class FerePdfRe {
                 for (int j = 0; j < objects.size(); j++) {
                     final ObjectStoreFile md = gson.fromJson(objects.get(j), ObjectStoreFile.class);
 
-                    if (md.getFileSizeKB() < 20000) {
-                        service.submit(new Runnable() {
+                    if (md.getFileSizeKB() < 20000) {                         
+                           service.submit(new Runnable() {
                             @Override
                             public void run() {
-                            	
+                                                     	
                                 String filename = md.getObjectID().substring(0, md.getObjectID().lastIndexOf("::"));
                                 String extension = ExtensionResolver.getExtension(md.getMimeType());
 //                                String url = md.getURI().replace("http://services.openaire.eu:8280", "http://localhost:8888");
                                 String url = md.getURI();
-                                System.out.println(Thread.currentThread().getName() + " - " + md.getObjectID()); 
-     	                	       	                	   
-
+                                System.out.println(Thread.currentThread().getName() + " - " + filename); 
                                 FileOutputStream fos = null;
-                                FileInputStream fis = null;
                                 try {
-                                	// Get publication file
+                                     // Get publication file
                                     fos = new FileOutputStream(pathToFile + filename + extension);
-                                    fis = (FileInputStream) new URL(url).openStream();
-                                    IOUtils.copyLarge(fis, fos);
+                                    IOUtils.copyLarge(new URL(url).openStream(), fos);
                                     fos.close();
-                                    fis.close();
-                                    
+                                  
                                     // Create Publication document for Elastic Search
                                     Publication pub = new Publication();
-                                    pub.setOpenaireId(md.getObjectID());
+                                    pub.setOpenaireId(filename);
                                     pub.setMimeType(md.getMimeType());
                                     pub.setHashValue(md.getMd5Sum());
                                     pub.setPathToFile(pathToFile + filename + extension);
                                     System.out.println(Thread.currentThread().getName() + " " + pub); 
                                     
                                     // Add publication to Elastic Search index
-                                    Index index = new Index.Builder(pub).index(indexES).type(documentType).id(md.getObjectID()).build();
-                                    client.executeAsync(index, new MyJestResultHandler());        	                
-                                    
+                                    Index index = new Index.Builder(pub).index(indexES).type(documentType).id(filename).build();
+                                    client.executeAsync(index, new MyJestResultHandler());
+                                                                           
                                 } catch (IOException e) {
-                                    e.printStackTrace();
-                                } finally {
-                                	IOUtils.closeQuietly(fos);
-                                	IOUtils.closeQuietly(fis);
+                                     e.printStackTrace();
+                                }  finally {
+                                     IOUtils.closeQuietly(fos);                                     
                                 }
-                                
+                                    
                                 
                             }
                         });
@@ -157,5 +151,7 @@ public class FerePdfRe {
             }
 
         }
+     	service.shutdown();
+	client.shutdownClient();
     }
 }
