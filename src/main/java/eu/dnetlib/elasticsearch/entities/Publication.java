@@ -16,6 +16,7 @@ public class Publication {
 		this.hashValue = null;
 		this.mimeType = null;
 		this.pathToFile = null;
+		this.url = null;
 	}
 	
 	public Publication(String id, String hash, String mimeType, String pathToFile, String url) {
@@ -23,6 +24,7 @@ public class Publication {
 		this.hashValue = hash;
 		this.mimeType = mimeType;
 		this.pathToFile = pathToFile;
+		this.url = url;
 	}
 
 	public String getOpenaireId() {
