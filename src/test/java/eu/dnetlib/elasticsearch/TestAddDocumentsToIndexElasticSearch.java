@@ -1,8 +1,12 @@
 package eu.dnetlib.elasticsearch;
 
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import com.google.gson.Gson;
 
 import eu.dnetlib.elasticsearch.entities.Publication;
 import eu.dnetlib.elasticsearch.entities.PublicationGenerator;
@@ -18,7 +22,7 @@ public class TestAddDocumentsToIndexElasticSearch {
 		final JestClient client = configES.client();
 		
 		final String pathToPdf = "/home/gkirtzou/Desktop/tmp/pdfs/";
-		final String urlDomain = "http://adonis.athenarc.gr/openaire/pdfs/";
+		final String urlDomain = "http://adonis.athenarc.gr/pdfs/";
 		final String indexES = esConfig.getIndex();
 		final String documentType = esConfig.getDocumentType();
 
@@ -31,12 +35,21 @@ public class TestAddDocumentsToIndexElasticSearch {
             //       @Override
                    public void run() {
                 	   try {
+                		   // Create publication
 	                	   System.out.println(Thread.currentThread().getName());
 	                	   Publication doc = pubGenerator.generatePublication();
 	                	   String id = doc.getOpenaireId();
 	       	                	
+	                	   // Add publication to Elastic Search
 	                	   Index index = new Index.Builder(doc).index(indexES).type(documentType).id(id).build();
-	                	   client.executeAsync(index, new MyJestResultHandler());	                	
+	                	   client.executeAsync(index, new MyJestResultHandler());
+	                	   	                	 
+	                	   // Export Publication in json and save to disk
+	                	   Gson gson = new Gson();	                	  
+	                	   FileWriter fw = new FileWriter(pathToPdf + "metadata/" + id +".json");
+	                	   gson.toJson(doc,fw);
+	                	   fw.close();
+
 	                   }
                 	   catch(IOException e) {
                            e.printStackTrace();
@@ -47,7 +60,10 @@ public class TestAddDocumentsToIndexElasticSearch {
 		
 		service.shutdown();
 		client.shutdownClient();
-		
+	/*	Gson gson = new Gson();
+		Publication pub = gson.fromJson(new FileReader(pathToPdf + "metadata/53a1d962-5b3e-4bba-b8c1-0f425af53252.json"), Publication.class);
+		System.out.println("Publication from json::" + pub.toString());
+		*/
 	}
 	
 }

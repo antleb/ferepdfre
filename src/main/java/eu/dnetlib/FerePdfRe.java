@@ -31,6 +31,7 @@ import javax.xml.ws.wsaddressing.W3CEndpointReference;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URL;
 import java.security.KeyManagementException;
@@ -152,6 +153,13 @@ public class FerePdfRe {
                                     // Add publication to Elastic Search index
                                     Index index = new Index.Builder(pub).index(indexES).type(documentType).id(filename).build();
                                     client.executeAsync(index, new MyJestResultHandler());
+                                   
+                                    // Export Publication in json and save to disk
+                                    Gson gson = new Gson();	                	  
+         	                	   	FileWriter fw = new FileWriter(pathToFiles + "metadata/" + filename +".json");
+         	                	   	gson.toJson(pub,fw);
+         	                	   	fw.close();
+                                    
                                                                            
                                 } catch (IOException e) {
                                      e.printStackTrace();
@@ -191,7 +199,7 @@ public class FerePdfRe {
          if (pathToFiles != null) {
               pathToFiles = pathToFiles.trim();
          } else {
-	    	pathToFiles = "/media/openaire/pdfs";
+	    	pathToFiles = "/media/pdfs";
          }	   
 
          return pathToFiles;
