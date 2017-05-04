@@ -123,12 +123,12 @@ public class FerePdfRe {
                                                      	
                                 String filename = md.getObjectID().substring(0, md.getObjectID().lastIndexOf("::"));
                                 String metadataFilename = pathToFiles + "metadata/" + filename +".json";
-
+				System.out.println(Thread.currentThread().getName() + " - " + filename );
                                 if (!new File(metadataFilename).exists()) {
                                     String extension = ExtensionResolver.getExtension(md.getMimeType());
 //                                String url = md.getURI().replace("http://services.openaire.eu:8280", "http://localhost:8888");
                                     String url = md.getURI();
-                                    System.out.println(Thread.currentThread().getName() + " - " + filename);
+                                    System.out.println(Thread.currentThread().getName() + " - " + filename + "download");
                                     FileOutputStream fos = null;
                                     try {
                                         // Get publication file
