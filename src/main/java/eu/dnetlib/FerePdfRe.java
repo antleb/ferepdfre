@@ -122,50 +122,54 @@ public class FerePdfRe {
                             public void run() {
                                                      	
                                 String filename = md.getObjectID().substring(0, md.getObjectID().lastIndexOf("::"));
-                                String extension = ExtensionResolver.getExtension(md.getMimeType());
+                                String metadataFilename = pathToFiles + "metadata/" + filename +".json";
+
+                                if (!new File(metadataFilename).exists()) {
+                                    String extension = ExtensionResolver.getExtension(md.getMimeType());
 //                                String url = md.getURI().replace("http://services.openaire.eu:8280", "http://localhost:8888");
-                                String url = md.getURI();
-                                System.out.println(Thread.currentThread().getName() + " - " + filename); 
-                                FileOutputStream fos = null;
-                                try {
-                                     // Get publication file
-                                    fos = new FileOutputStream(pathToFiles + filename + extension);
-                                    IOUtils.copyLarge(new URL(url).openStream(), fos);
-                                    fos.close();
-                                  
-                                    // Create Publication document for Elastic Search
-                                    Publication pub = new Publication();
-                                    // openaireId
-                                    pub.setOpenaireId(filename);
-                                    // mimeType
-                                    pub.setMimeType(md.getMimeType());
-                                    // path to file
-                                    String pathToFile = pathToFiles + filename + extension;  
-                                    pub.setPathToFile(pathToFile);
-                                    // hash value
-                                    byte[] file = FileUtils.readFileToByteArray(new File(pathToFile));
-                            		String hashValue = md5Calculator.getID(file); 
-                                    pub.setHashValue(hashValue);
-                                    // URL to file
-                                    pub.setUrl(urlDomain + filename + extension);
-                                    System.out.println(Thread.currentThread().getName() + " " + pub); 
-                                    
-                                    // Add publication to Elastic Search index
-                                    Index index = new Index.Builder(pub).index(indexES).type(documentType).id(filename).build();
-                                    client.executeAsync(index, new MyJestResultHandler());
-                                   
-                                    // Export Publication in json and save to disk
-                                    Gson gson = new Gson();	                	  
-         	                	   	FileWriter fw = new FileWriter(pathToFiles + "metadata/" + filename +".json");
-         	                	   	gson.toJson(pub,fw);
-         	                	   	fw.close();
-                                    
-                                                                           
-                                } catch (IOException e) {
-                                     e.printStackTrace();
-                                }  finally {
-                                     IOUtils.closeQuietly(fos);                                     
-                                }                                                                   
+                                    String url = md.getURI();
+                                    System.out.println(Thread.currentThread().getName() + " - " + filename);
+                                    FileOutputStream fos = null;
+                                    try {
+                                        // Get publication file
+                                        fos = new FileOutputStream(pathToFiles + filename + extension);
+                                        IOUtils.copyLarge(new URL(url).openStream(), fos);
+                                        fos.close();
+
+                                        // Create Publication document for Elastic Search
+                                        Publication pub = new Publication();
+                                        // openaireId
+                                        pub.setOpenaireId(filename);
+                                        // mimeType
+                                        pub.setMimeType(md.getMimeType());
+                                        // path to file
+                                        String pathToFile = pathToFiles + filename + extension;
+                                        pub.setPathToFile(pathToFile);
+                                        // hash value
+                                        byte[] file = FileUtils.readFileToByteArray(new File(pathToFile));
+                                        String hashValue = md5Calculator.getID(file);
+                                        pub.setHashValue(hashValue);
+                                        // URL to file
+                                        pub.setUrl(urlDomain + filename + extension);
+                                        System.out.println(Thread.currentThread().getName() + " " + pub);
+
+                                        // Add publication to Elastic Search index
+                                        Index index = new Index.Builder(pub).index(indexES).type(documentType).id(filename).build();
+                                        client.executeAsync(index, new MyJestResultHandler());
+
+                                        // Export Publication in json and save to disk
+                                        Gson gson = new Gson();
+                                        FileWriter fw = new FileWriter(pathToFiles + "metadata/" + filename + ".json");
+                                        gson.toJson(pub, fw);
+                                        fw.close();
+
+
+                                    } catch (IOException e) {
+                                        e.printStackTrace();
+                                    } finally {
+                                        IOUtils.closeQuietly(fos);
+                                    }
+                                }
                             }
                         });
                     }
