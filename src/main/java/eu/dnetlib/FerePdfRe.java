@@ -86,9 +86,11 @@ public class FerePdfRe {
         rsService = (ResultSetService) factory.create();
        
 
+        System.out.println("Getting list of stores");
         List<String> stores = storeService.getListOfObjectStores();
 
         for (String store : stores) {
+            System.out.println("Getting result set from store " + store);
             W3CEndpointReference w3cEpr = storeService.deliverObjects(store, 0L, new Date().getTime());
 
 
@@ -96,14 +98,16 @@ public class FerePdfRe {
             String rsId = epr.getParameter("ResourceIdentifier");
             int count = rsService.getNumberOfElements(rsId);
 
-            for (int i = 0; i < count; i += 100) {
+            for (int i = 0; i < count; i += 1000) {
+		System.out.println(new Date() + "  Getting records " + i + " - " + (i+1000) + "/" + count + " from store " + store);
                 List<String> objects = null;
                 int counter =0;
 
                 while (objects == null && counter < 5) {
                     try {
-                        objects = rsService.getResult(rsId, i, i + 100, "waiting");
+                        objects = rsService.getResult(rsId, i, i + 1000, "waiting");
                     } catch (Exception e) {
+			e.printStackTrace();
                         counter++;
                     }
                 }
@@ -115,16 +119,15 @@ public class FerePdfRe {
 
                 for (int j = 0; j < objects.size(); j++) {
                     final ObjectStoreFile md = gson.fromJson(objects.get(j), ObjectStoreFile.class);
+                    final String filename = md.getObjectID().substring(0, md.getObjectID().lastIndexOf("::"));
+		    final String metadataFilename = pathToFiles + "metadata/" + filename +".json";
 
-                    if (md.getFileSizeKB() < 20000) {                         
+                    if (!new File(metadataFilename).exists() && md.getFileSizeKB() < 20000) {                         
                            service.submit(new Runnable() {
                             @Override
                             public void run() {
                                                      	
-                                String filename = md.getObjectID().substring(0, md.getObjectID().lastIndexOf("::"));
-                                String metadataFilename = pathToFiles + "metadata/" + filename +".json";
 				System.out.println(Thread.currentThread().getName() + " - " + filename );
-                                if (!new File(metadataFilename).exists()) {
                                     String extension = ExtensionResolver.getExtension(md.getMimeType());
 //                                String url = md.getURI().replace("http://services.openaire.eu:8280", "http://localhost:8888");
                                     String url = md.getURI();
@@ -170,9 +173,10 @@ public class FerePdfRe {
                                         IOUtils.closeQuietly(fos);
                                     }
                                 }
-                            }
                         });
-                    }
+                    } else {
+			System.out.println("file " + metadataFilename + " already exists or is over 20MB");
+		    }
                 }
             }
 
