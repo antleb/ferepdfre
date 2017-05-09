@@ -1,0 +1,14 @@
+
+
+   
+   {
+      "properties": {
+        "openaireId": { "type": "text" },
+        "hashValue":  { "type": "text" },
+        "mimeType":   { "type": "text" },
+        "pathToFile": { "type": "text" },
+        "url":        { "type": "text" }
+      }
+   }
+  
+

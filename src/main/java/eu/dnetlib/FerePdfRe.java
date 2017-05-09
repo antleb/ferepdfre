@@ -14,6 +14,7 @@ import eu.dnetlib.enabling.resultset.rmi.ResultSetException;
 import eu.dnetlib.enabling.resultset.rmi.ResultSetService;
 import eu.dnetlib.utils.EPRUtils;
 import eu.dnetlib.utils.ExtensionResolver;
+import eu.dnetlib.utils.MyFilenameFilter;
 import eu.openminted.omtdcache.CacheDataIDMD5;
 import io.searchbox.client.JestClient;
 import io.searchbox.core.Index;
@@ -97,9 +98,12 @@ public class FerePdfRe {
             EPR epr = EPRUtils.createEPR(w3cEpr);
             String rsId = epr.getParameter("ResourceIdentifier");
             int count = rsService.getNumberOfElements(rsId);
+	    boolean firstDoc = true;
 
             for (int i = 0; i < count; i += 1000) {
 		System.out.println(new Date() + "  Getting records " + i + " - " + (i+1000) + "/" + count + " from store " + store);
+		System.out.println("Total size in count ::" + count + 
+				   " Total size in Size::" + storeService.getSize(store));
                 List<String> objects = null;
                 int counter =0;
 
@@ -114,66 +118,85 @@ public class FerePdfRe {
 
                 if (objects == null)
                     continue;
-
-
+		
+		// Check where you have retrieved all documents in this store
+		if (firstDoc) {
+		    ObjectStoreFile md = gson.fromJson(objects.get(0), ObjectStoreFile.class);
+                    String filename = md.getObjectID().substring(0, md.getObjectID().lastIndexOf("::"));
+		    if (!filename.contains("::")) {
+			    System.out.println("Store " + store + " contains invalid filename, eg " + filename);
+			    break;
+		    }
+		    String storePrefix = filename.substring(0, filename.lastIndexOf("::"));
+		    MyFilenameFilter filter = new MyFilenameFilter(storePrefix);		    
+		    String[] listFiles = new  File(pathToFiles).list(filter);
+		    System.out.println("Already downloaded " + new File(pathToFiles).list(filter).length 
+					   + "files from store " + store);
+		    if (listFiles.length == storeService.getSize(store)) {
+			System.out.println("Downloaded all files from store " + store);			
+			break;
+		    }
+		    firstDoc = false;
+		}
+		
 
                 for (int j = 0; j < objects.size(); j++) {
                     final ObjectStoreFile md = gson.fromJson(objects.get(j), ObjectStoreFile.class);
                     final String filename = md.getObjectID().substring(0, md.getObjectID().lastIndexOf("::"));
 		    final String metadataFilename = pathToFiles + "metadata/" + filename +".json";
-
+		   	  
                     if (!new File(metadataFilename).exists() && md.getFileSizeKB() < 20000) {                         
                            service.submit(new Runnable() {
                             @Override
                             public void run() {
                                                      	
 				System.out.println(Thread.currentThread().getName() + " - " + filename );
-                                    String extension = ExtensionResolver.getExtension(md.getMimeType());
+                                String extension = ExtensionResolver.getExtension(md.getMimeType());
 //                                String url = md.getURI().replace("http://services.openaire.eu:8280", "http://localhost:8888");
-                                    String url = md.getURI();
-                                    System.out.println(Thread.currentThread().getName() + " - " + filename + "download");
-                                    FileOutputStream fos = null;
-                                    try {
-                                        // Get publication file
-                                        fos = new FileOutputStream(pathToFiles + filename + extension);
-                                        IOUtils.copyLarge(new URL(url).openStream(), fos);
-                                        fos.close();
+                                String url = md.getURI();
+				System.out.println(Thread.currentThread().getName() + " - " + filename + " - download");
+				FileOutputStream fos = null;
+				try {
+				    // Get publication file
+				    fos = new FileOutputStream(pathToFiles + filename + extension);
+				    IOUtils.copyLarge(new URL(url).openStream(), fos);
+				    fos.close();
+				    
+				    // Create Publication document for Elastic Search
+				    Publication pub = new Publication();
+				    // openaireId
+				    pub.setOpenaireId(filename);
+				    // mimeType
+				    pub.setMimeType(md.getMimeType());
+				    // path to file
+				    String pathToFile = pathToFiles + filename + extension;
+				    pub.setPathToFile(pathToFile);
+				    // hash value
+				    byte[] file = FileUtils.readFileToByteArray(new File(pathToFile));
+				    String hashValue = md5Calculator.getID(file);
+				    pub.setHashValue(hashValue);
+				    // URL to file
+				    pub.setUrl(urlDomain + filename + extension);
+				    System.out.println(Thread.currentThread().getName() + " " + pub);
+				    
+				    // Add publication to Elastic Search index
+				    Index index = new Index.Builder(pub).index(indexES).type(documentType).id(filename).build();
+				    client.executeAsync(index, new MyJestResultHandler());
+				    
+				    // Export Publication in json and save to disk
+				    Gson gson = new Gson();
+				    FileWriter fw = new FileWriter(pathToFiles + "metadata/" + filename + ".json");
+				    gson.toJson(pub, fw);
+				    fw.close();
 
-                                        // Create Publication document for Elastic Search
-                                        Publication pub = new Publication();
-                                        // openaireId
-                                        pub.setOpenaireId(filename);
-                                        // mimeType
-                                        pub.setMimeType(md.getMimeType());
-                                        // path to file
-                                        String pathToFile = pathToFiles + filename + extension;
-                                        pub.setPathToFile(pathToFile);
-                                        // hash value
-                                        byte[] file = FileUtils.readFileToByteArray(new File(pathToFile));
-                                        String hashValue = md5Calculator.getID(file);
-                                        pub.setHashValue(hashValue);
-                                        // URL to file
-                                        pub.setUrl(urlDomain + filename + extension);
-                                        System.out.println(Thread.currentThread().getName() + " " + pub);
-
-                                        // Add publication to Elastic Search index
-                                        Index index = new Index.Builder(pub).index(indexES).type(documentType).id(filename).build();
-                                        client.executeAsync(index, new MyJestResultHandler());
-
-                                        // Export Publication in json and save to disk
-                                        Gson gson = new Gson();
-                                        FileWriter fw = new FileWriter(pathToFiles + "metadata/" + filename + ".json");
-                                        gson.toJson(pub, fw);
-                                        fw.close();
-
-
-                                    } catch (IOException e) {
-                                        e.printStackTrace();
-                                    } finally {
-                                        IOUtils.closeQuietly(fos);
-                                    }
-                                }
-                        });
+				    
+                                } catch (IOException e) {
+				    e.printStackTrace();
+				} finally {
+				    IOUtils.closeQuietly(fos);
+				}
+			    }
+			       });
                     } else {
 			System.out.println("file " + metadataFilename + " already exists or is over 20MB");
 		    }
