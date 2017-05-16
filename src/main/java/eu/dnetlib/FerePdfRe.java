@@ -144,7 +144,9 @@ public class FerePdfRe {
                     final ObjectStoreFile md = gson.fromJson(objects.get(j), ObjectStoreFile.class);
                     final String filename = md.getObjectID().substring(0, md.getObjectID().lastIndexOf("::"));
 		    final String metadataFilename = pathToFiles + "metadata/" + filename +".json";
-		   	  
+		    
+		    System.out.println("Checking for the " + (i+j) + " object in store " + store);
+
                     if (!new File(metadataFilename).exists() && md.getFileSizeKB() < 20000) {                         
                            service.submit(new Runnable() {
                             @Override
