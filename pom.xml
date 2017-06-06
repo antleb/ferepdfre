@@ -90,68 +90,20 @@
             </snapshots>
         </repository>
     </repositories>
-<!-- 	
-	<build>
-		<plugins>
-		    <plugin>
-		        <artifactId>maven-assembly-plugin</artifactId>
-		        <executions>
-		          <execution>
-		            <id>ferepdf</id>
-		            <configuration>
-		              <archive>
-		                <manifest>
-		                  <mainClass>eu.dnetlib.FerePdfRe</mainClass>
-		                </manifest>
-		              </archive>
-		              <descriptorRefs>
-		                <descriptorRef>jar-with-dependencies</descriptorRef>
-		              </descriptorRefs>
-		              <finalName>ferepdf.jar</finalName>
-		            </configuration>
-		          </execution>
-		          <execution>
-		            <id>updateIndex</id>
-		            <configuration>
-		              <archive>
-		                <manifest>
-		                  <mainClass>eu.dnetlib.UpdateIndex</mainClass>
-		                </manifest>
-		              </archive>
-		              <descriptorRefs>
-		                <descriptorRef>jar-with-dependencies</descriptorRef>
-		              </descriptorRefs>
-		              <finalName>updateIndex.jar</finalName>
-		            </configuration>
-		          </execution>
-		        </executions>
-		    </plugin>
-		</plugins>
-	</build>
--->
-<!-- 
-	
-	<build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.5.1</version>
-                <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
--->    
     
+    
+     
+   
     <build>
 	    <plugins>
 			<plugin>
 			  <groupId>org.apache.maven.plugins</groupId>
 			  <artifactId>maven-shade-plugin</artifactId>
-			  <version>1.4</version>
+			  <version>1.4</version>	
+			  <configuration>
+          		<source>1.8</source>
+          		<target>1.8</target>
+        	  </configuration>		
 			  <executions>
 			    <execution>
 			      <id>build-first</id>
@@ -180,13 +132,14 @@
 			            <mainClass>eu.dnetlib.UpdateIndex</mainClass>
 			          </transformer>
 			        </transformers>
-			        <finalName>update-index</finalName>
+			        <finalName>update-index</finalName>			    
 			      </configuration>  
 			    </execution>
 			  </executions>
 			</plugin>
 		</plugins>
 	</build>
+	 
 <!--  
 	<build>
 		<plugins>
@@ -266,6 +219,7 @@
 		</plugins>
 	</build>
 -->
+ 
 	<profiles>
 		<profile>
 			<id>dnet4.0</id>
@@ -300,4 +254,6 @@
 			</repositories>
 		</profile>
 	</profiles>
-</project>
+	
+	 
+	</project>
