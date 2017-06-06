@@ -15,7 +15,8 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.source>1.8</maven.compiler.source>
     	<maven.compiler.target>1.8</maven.compiler.target>
-	</properties>
+        <spring.version>4.2.1.RELEASE</spring.version>
+   	</properties>
 	
 	<dependencies>
 		<dependency>
@@ -69,7 +70,124 @@
   			<artifactId>omtd-cache-id</artifactId>
 			<version>0.0.1-SNAPSHOT</version>
 		</dependency>
+		<dependency>
+            <groupId>eu.openminted</groupId>
+            <artifactId>content-connector-index</artifactId>
+            <version>[0.0.1-SNAPSHOT, )</version>
+		</dependency>
 	</dependencies>
+	
+	<repositories>
+        <repository>
+            <id>omtd-snapshots</id>
+            <layout>default</layout>
+            <url>https://repo.openminted.eu/content/repositories/snapshots/</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+<!-- 	
+	<build>
+		<plugins>
+		    <plugin>
+		        <artifactId>maven-assembly-plugin</artifactId>
+		        <executions>
+		          <execution>
+		            <id>ferepdf</id>
+		            <configuration>
+		              <archive>
+		                <manifest>
+		                  <mainClass>eu.dnetlib.FerePdfRe</mainClass>
+		                </manifest>
+		              </archive>
+		              <descriptorRefs>
+		                <descriptorRef>jar-with-dependencies</descriptorRef>
+		              </descriptorRefs>
+		              <finalName>ferepdf.jar</finalName>
+		            </configuration>
+		          </execution>
+		          <execution>
+		            <id>updateIndex</id>
+		            <configuration>
+		              <archive>
+		                <manifest>
+		                  <mainClass>eu.dnetlib.UpdateIndex</mainClass>
+		                </manifest>
+		              </archive>
+		              <descriptorRefs>
+		                <descriptorRef>jar-with-dependencies</descriptorRef>
+		              </descriptorRefs>
+		              <finalName>updateIndex.jar</finalName>
+		            </configuration>
+		          </execution>
+		        </executions>
+		    </plugin>
+		</plugins>
+	</build>
+-->
+<!-- 
+	
+	<build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.5.1</version>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+-->    
+    
+    <build>
+	    <plugins>
+			<plugin>
+			  <groupId>org.apache.maven.plugins</groupId>
+			  <artifactId>maven-shade-plugin</artifactId>
+			  <version>1.4</version>
+			  <executions>
+			    <execution>
+			      <id>build-first</id>
+			      <phase>package</phase>
+			      <goals>
+			         <goal>shade</goal>
+			      </goals>   
+			      <configuration>
+			        <transformers>
+			          <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">                        
+			            <mainClass>eu.dnetlib.FerePdfRe</mainClass>
+			          </transformer>
+			        </transformers>
+			        <finalName>ferepdf</finalName>
+			      </configuration>        
+			    </execution>
+			    <execution>
+			      <id>build-second</id>
+			      <phase>package</phase>
+			      <goals>
+			         <goal>shade</goal>
+			      </goals>   
+			      <configuration>
+			        <transformers>
+			          <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">                        
+			            <mainClass>eu.dnetlib.UpdateIndex</mainClass>
+			          </transformer>
+			        </transformers>
+			        <finalName>update-index</finalName>
+			      </configuration>  
+			    </execution>
+			  </executions>
+			</plugin>
+		</plugins>
+	</build>
+<!--  
 	<build>
 		<plugins>
 			<plugin>
@@ -141,9 +259,13 @@
 					</dependency>
 				</dependencies>
 			</plugin>
+			<plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
 		</plugins>
 	</build>
-
+-->
 	<profiles>
 		<profile>
 			<id>dnet4.0</id>
