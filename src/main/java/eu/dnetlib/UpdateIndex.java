@@ -3,6 +3,9 @@ package eu.dnetlib;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
@@ -43,11 +46,80 @@ public class UpdateIndex {
         
         // Read json files
         log.info("Read documents from json files");
-		ObjectMapper mapper = new ObjectMapper();
+        ObjectMapper mapper = new ObjectMapper();
+        Path p = FileSystems.getDefault().getPath(pathToFiles + "metadata/");
+		Files.walk(p).forEach(filePath -> {
+		        if (Files.isRegularFile(filePath)) {
+		            //Do something with filePath
+			        log.info("Loading publication from json file " + filePath);
+			        File workingFile = filePath.toFile();
+			        Publication pub;
+					try {
+						pub = mapper.readValue(workingFile, Publication.class);
+					
+						String pubID = pub.getOpenaireId();
+						log.info("Loaded publication :: " + pub.toString());
+										
+					
+						// Recalculate hash value
+						File fileOld = new File(pub.getPathToFile());				
+						String hashValueSHA1;
+					
+						hashValueSHA1 = sha1Calc.getID(FileUtils.readFileToByteArray(fileOld));
+						pub.setHashValue(hashValueSHA1);
+					
+					
+					
+						// Optimize layout in directories
+						// Create store folder(s)
+						String storePrefix = pubID.substring(0, pubID.lastIndexOf("::"));
+						String id = pubID.substring(pubID.lastIndexOf("::")+2); 
+						File storeFolder = new File(pathToFiles + storePrefix + "/" + id.substring(0, 3));
+						if (!storeFolder.exists()) {
+							storeFolder.mkdirs();
+						}
+						// Move to new store folder
+						String extension = ExtensionResolver.getExtension(pub.getMimeType());
+						
+						String filenameNew = storeFolder.getPath() + "/" + pubID + extension;
+						File fileNew = new File(filenameNew);
+						try {			
+						    FileUtils.copyFile(fileOld, fileNew);
+						    fileOld.delete();
+						} catch (IOException e) {
+						    e.printStackTrace();
+						}
+						// Update new paths
+						pub.setPathToFile(fileNew.getCanonicalPath());
+						pub.setUrl(urlDomain + filenameNew);
+									
+						log.info("Updated publication ::" + pub.toString());
+						// Update publication in index
+						boolean success = index.addPublication(pub, pubID); 
+						log.info("Succeded? " + success);
+						assert(success);
+						
+						// Export Publication in json and save to disk
+					    Gson gson = new Gson();
+					    FileWriter fw = new FileWriter(pathToFiles + "metadata_new/" + pubID + ".json");
+					    gson.toJson(pub, fw);
+					    fw.close();
+					    
+					} catch (IOException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
+			        
+		        }
+		});
+        
+        /*
+		
 		File folder = new File(pathToFiles + "metadata/");
 		File[] listOfFiles = folder.listFiles();
 
-		int counter = 0; 
+	
+		
 		//listOfFiles.length
 		for (int i = 0; i < listOfFiles.length; i++) {
 			File workingFile = listOfFiles[i];
@@ -101,11 +173,10 @@ public class UpdateIndex {
 			    fw.close();
 			    counter++;
 				
-			}
-			log.info("Updated " + counter + " documents.");
-								
+			}											
 		}
-        
+        */
+		log.info("Updated all documents.");
         index.disconnect();
 	}
 	
