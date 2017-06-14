@@ -140,68 +140,68 @@ public class FerePdfRe {
 		}
 		
 
-                for (int j = 0; j < objects.size(); j++) {
-                    final ObjectStoreFile md = gson.fromJson(objects.get(j), ObjectStoreFile.class);
-                    final String filename = md.getObjectID().substring(0, md.getObjectID().lastIndexOf("::"));
+		for (int j = 0; j < objects.size(); j++) {
+			final ObjectStoreFile md = gson.fromJson(objects.get(j), ObjectStoreFile.class);
+			final String filename = md.getObjectID().substring(0, md.getObjectID().lastIndexOf("::"));
 		    final String metadataFilename = pathToFiles + "metadata/" + filename +".json";
 		    
 		    System.out.println("Checking for the " + (i+j) + " object in store " + store);
 
-                    if (!new File(metadataFilename).exists() && md.getFileSizeKB() < 20000) {                         
-                           service.submit(new Runnable() {
-                            @Override
-                            public void run() {
+		    if (!new File(metadataFilename).exists() && md.getFileSizeKB() < 20000) {                         
+		    	service.submit(new Runnable() {
+		    		@Override
+		    		public void run() {
                                                      	
-				System.out.println(Thread.currentThread().getName() + " - " + filename );
-                                String extension = ExtensionResolver.getExtension(md.getMimeType());
-//                                String url = md.getURI().replace("http://services.openaire.eu:8280", "http://localhost:8888");
-                                String url = md.getURI();
-				System.out.println(Thread.currentThread().getName() + " - " + filename + " - download");
-				FileOutputStream fos = null;
-				try {
-				    // Get publication file
-				    fos = new FileOutputStream(pathToFiles + filename + extension);
-				    IOUtils.copyLarge(new URL(url).openStream(), fos);
-				    fos.close();
-				    
-				    // Create Publication document for Elastic Search
-				    Publication pub = new Publication();
-				    // openaireId
-				    pub.setOpenaireId(filename);
-				    // mimeType
-				    pub.setMimeType(md.getMimeType());
-				    // path to file
-				    String pathToFile = pathToFiles + filename + extension;
-				    pub.setPathToFile(pathToFile);
-				    // hash value
-				    byte[] file = FileUtils.readFileToByteArray(new File(pathToFile));
-				    String hashValue = md5Calculator.getID(file);
-				    pub.setHashValue(hashValue);
-				    // URL to file
-				    pub.setUrl(urlDomain + filename + extension);
-				    System.out.println(Thread.currentThread().getName() + " " + pub);
-				    
-				    // Add publication to Elastic Search index
-				    Index index = new Index.Builder(pub).index(indexES).type(documentType).id(filename).build();
-				    client.executeAsync(index, new MyJestResultHandler());
-				    
-				    // Export Publication in json and save to disk
-				    Gson gson = new Gson();
-				    FileWriter fw = new FileWriter(pathToFiles + "metadata/" + filename + ".json");
-				    gson.toJson(pub, fw);
-				    fw.close();
-
-				    
-                                } catch (IOException e) {
-				    e.printStackTrace();
-				} finally {
-				    IOUtils.closeQuietly(fos);
-				}
-			    }
-			       });
-                    } else {
-			System.out.println("file " + metadataFilename + " already exists or is over 20MB");
-		    }
+		    			System.out.println(Thread.currentThread().getName() + " - " + filename );
+		    			String extension = ExtensionResolver.getExtension(md.getMimeType());
+//                      	          String url = md.getURI().replace("http://services.openaire.eu:8280", "http://localhost:8888");
+		    			String url = md.getURI();
+		    			System.out.println(Thread.currentThread().getName() + " - " + filename + " - download");
+		    			FileOutputStream fos = null;
+						try {
+						    // Get publication file
+						    fos = new FileOutputStream(pathToFiles + filename + extension);
+						    IOUtils.copyLarge(new URL(url).openStream(), fos);
+						    fos.close();
+						    
+						    // Create Publication document for Elastic Search
+						    Publication pub = new Publication();
+						    // openaireId
+						    pub.setOpenaireId(filename);
+						    // mimeType
+						    pub.setMimeType(md.getMimeType());
+						    // path to file
+						    String pathToFile = pathToFiles + filename + extension;
+						    pub.setPathToFile(pathToFile);
+						    // hash value
+						    byte[] file = FileUtils.readFileToByteArray(new File(pathToFile));
+						    String hashValue = md5Calculator.getID(file);
+						    pub.setHashValue(hashValue);
+						    // URL to file
+						    pub.setUrl(urlDomain + filename + extension);
+						    System.out.println(Thread.currentThread().getName() + " " + pub);
+						    
+						    // Add publication to Elastic Search index
+						    Index index = new Index.Builder(pub).index(indexES).type(documentType).id(filename).build();
+						    client.executeAsync(index, new MyJestResultHandler());
+						    
+						    // Export Publication in json and save to disk
+						    Gson gson = new Gson();
+						    FileWriter fw = new FileWriter(pathToFiles + "metadata/" + filename + ".json");
+						    gson.toJson(pub, fw);
+						    fw.close();
+		
+						    
+						} catch (IOException e) {
+						    e.printStackTrace();
+						} finally {
+						    IOUtils.closeQuietly(fos);
+						}
+					    }
+					       });
+		                    } else {
+					System.out.println("file " + metadataFilename + " already exists or is over 20MB");
+				    }
                 }
             }
 

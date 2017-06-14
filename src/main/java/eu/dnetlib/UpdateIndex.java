@@ -10,6 +10,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.Properties;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 import org.apache.commons.io.FileUtils;
@@ -30,12 +33,17 @@ import eu.openminted.omtdcache.CacheDataIDSHA1;
  * @author gkirtzou
  *
  */
-public class UpdateIndex {
+public class UpdateIndex implements Runnable {
 
 	private static final Logger log = LoggerFactory.getLogger(UpdateIndex.class);
 	
+
+	
 	public static void main(String[] args) throws IOException, Exception {
 			
+		 // Multithread
+        ExecutorService service = Executors.newFixedThreadPool(2);
+
     	// Connect to the Index 
 		IndexConfiguration indexConfig =  IndexConfiguration.getInstance();
 		IndexPublication index = new IndexPublication(indexConfig);
@@ -48,142 +56,116 @@ public class UpdateIndex {
         log.info("Connect to index <" + indexName + "> with documents <" + documentType + ">");
         
         // Read json files
-        log.info("Read documents from json files");
-        int counter = 0;
+        log.info("Read documents from json files");       
         ObjectMapper mapper = new ObjectMapper();
         Path p = FileSystems.getDefault().getPath(pathToFiles + "metadata/");
         Stream<Path> walk = Files.walk(p);     
         Iterator<Path> iterPath = walk.iterator();
         
+        
         while(iterPath.hasNext()) {
         		Path filePath = iterPath.next();
 		        if (Files.isRegularFile(filePath)) {
-		            //Do something with filePath
-			        log.info("Loading publication from json file " + filePath);
-			        File workingFile = filePath.toFile();
-			        Publication pub;
-			        pub = mapper.readValue(workingFile, Publication.class);
-						
-					String pubID = pub.getOpenaireId();
-					log.info("Loaded publication :: " + pub.toString());
-										
-					
-					// Recalculate hash value
-					File fileOld = new File(pub.getPathToFile());				
-					String hashValueSHA1;
-						
-					hashValueSHA1 = sha1Calc.getID(FileUtils.readFileToByteArray(fileOld));
-					pub.setHashValue(hashValueSHA1);
-					
-					
-					
-					// Optimize layout in directories
-					// Create store folder(s)
-					String storePrefix = pubID.substring(0, pubID.lastIndexOf("::"));
-					String id = pubID.substring(pubID.lastIndexOf("::")+2); 
-					File storeFolder = new File(pathToFiles + storePrefix + "/" + id.substring(0, 3));
-					if (!storeFolder.exists()) {
-						storeFolder.mkdirs();
-					}
-					// Move to new store folder
-					String extension = ExtensionResolver.getExtension(pub.getMimeType());
-						
-					String filenameNew = storeFolder.getPath() + "/" + pubID + extension;
-					File fileNew = new File(filenameNew);
-					try {			
-						FileUtils.copyFile(fileOld, fileNew);
-						fileOld.delete();
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-					// Update new paths
-					pub.setPathToFile(fileNew.getCanonicalPath());
-					pub.setUrl(urlDomain + filenameNew);
-					
-					log.info("Updated publication ::" + pub.toString());
-					// Update publication in index
-					boolean success = index.addPublication(pub, pubID); 
-					log.info("Succeded? " + success);
-					assert(success);
-						
-					// Export Publication in json and save to disk
-					Gson gson = new Gson();
-					FileWriter fw = new FileWriter(pathToFiles + "metadata_new/" + pubID + ".json");
-					gson.toJson(pub, fw);
-					fw.close();
-					counter++;
-					    
-				
-			        
+		        	service.submit(new UpdateIndex(filePath, mapper, pathToFiles, urlDomain, index, sha1Calc));		        				        
 		        }
 		}
-        
-        /*
-		
-		File folder = new File(pathToFiles + "metadata/");
-		File[] listOfFiles = folder.listFiles();
-
+        walk.close();	
+        index.disconnect();
+        log.info("Add in index " + counter + " documents");
+	}
 	
+	public UpdateIndex(Path filePath, ObjectMapper mapper, String pathToFiles, String urlDomain, IndexPublication index, CacheDataIDSHA1 sha1Calc) {
+		this.filePath = filePath;
+		this.mapper = mapper;
+		this.pathToFiles = pathToFiles; 
+		this.index = index;
+		this.urlDomain = urlDomain;
+		this.sha1Calc = sha1Calc;
+		incrementCounter();
+		this.countID = counter.get();
+	}
+
+	private int countID;
+	private Path filePath;
+	private ObjectMapper mapper;
+	private String pathToFiles; 
+	private IndexPublication index;
+	private String urlDomain;
+	private CacheDataIDSHA1 sha1Calc;
 		
-		//listOfFiles.length
-		for (int i = 0; i < listOfFiles.length; i++) {
-			File workingFile = listOfFiles[i];
-			if (workingFile.isFile()) {
-				
-				// Create publication from JSON from file
-				log.info("Loading publication from json file " + workingFile.getName());				
-				Publication pub = mapper.readValue(workingFile, Publication.class);
-				String pubID = pub.getOpenaireId();
-				log.info("Loaded publication :: " + pub.toString());
-								
-				
-				// Recalculate hash value
-				File fileOld = new File(pub.getPathToFile());				
-				String hashValueSHA1 = sha1Calc.getID(FileUtils.readFileToByteArray(fileOld));
-				pub.setHashValue(hashValueSHA1);
-				
-				// Optimize layout in directories
+	@Override
+	public void run() {
+		
+		try {
+			log.info(countID + " :: Loading publication from json file " + filePath);
+			File workingFile = filePath.toFile();
+			Publication pub;					        
+			pub = mapper.readValue(workingFile, Publication.class);
+			
+			String pubID = pub.getOpenaireId();
+			log.info(countID + " :: Loaded publication :: " + pub.toString());
+			
+			// Get old path to file
+			File fileOld = new File(pub.getPathToFile());					
+			// Calculate new path to file
+			String storePrefix = pubID.substring(0, pubID.lastIndexOf("::"));
+			String id = pubID.substring(pubID.lastIndexOf("::")+2);
+			String extension = ExtensionResolver.getExtension(pub.getMimeType());
+			String relativeFileNew = storePrefix + "/" + id.substring(0, 3) +  "/" + pubID + extension;
+			File fileNew = new File(fileOld.getParentFile() + "/" + relativeFileNew);
+			
+			if (fileOld.exists()) {				
+				log.info(countID + " :: Copy file to new location  ::" + fileNew.getAbsolutePath());
 				// Create store folder(s)
-				String storePrefix = pubID.substring(0, pubID.lastIndexOf("::"));
-				String id = pubID.substring(pubID.lastIndexOf("::")+2); 
 				File storeFolder = new File(pathToFiles + storePrefix + "/" + id.substring(0, 3));
 				if (!storeFolder.exists()) {
 					storeFolder.mkdirs();
 				}
-				// Move to new store folder
-				String extension = ExtensionResolver.getExtension(pub.getMimeType());
-				
-				String filenameNew = storeFolder.getPath() + "/" + pubID + extension;
-				File fileNew = new File(filenameNew);
+				// Move to new store folder													
 				try {			
-				    FileUtils.copyFile(fileOld, fileNew);
-				    fileOld.delete();
+					FileUtils.copyFile(fileOld, fileNew);
+					fileOld.delete();
 				} catch (IOException e) {
-				    e.printStackTrace();
-				}
-				// Update new paths
-				pub.setPathToFile(fileNew.getCanonicalPath());
-				pub.setUrl(urlDomain + filenameNew);
-							
-				log.info("Updated publication ::" + pub.toString());
-				// Update publication in index
-				boolean success = index.addPublication(pub, pubID); 
-				log.info("Succeded? " + success);
-				assert(success);
-				
+					e.printStackTrace();
+				}																		
+			}
+			// Update to new location
+			pub.setPathToFile(fileNew.getCanonicalPath());
+			
+			// Recalculate hash value
+			String hashValueSHA1;
+			hashValueSHA1 = sha1Calc.getID(FileUtils.readFileToByteArray(fileNew));
+			pub.setHashValue(hashValueSHA1);
+			
+			// Set url
+			pub.setUrl(urlDomain + relativeFileNew);
+			
+			
+			log.info(countID + " :: Updated publication ::" + pub.toString());
+			// Update publication in index
+			index.addAsyncPublication(pub, pubID); 
+			
 				// Export Publication in json and save to disk
-			    Gson gson = new Gson();
-			    FileWriter fw = new FileWriter(pathToFiles + "metadata_new/" + pubID + ".json");
-			    gson.toJson(pub, fw);
-			    fw.close();
-			    counter++;
-				
-			}											
-		}
-        */
-		log.info("Updated " + counter + " documents.");
-        index.disconnect();
+			Gson gson = new Gson();
+			FileWriter fw = new FileWriter(pathToFiles + "metadata_new/" + pubID + ".json");
+			gson.toJson(pub, fw);
+			fw.close();
+			
+        }
+        catch (Exception e) {
+        	e.printStackTrace();
+        }
+      
+    
 	}
+	
+	private static final AtomicInteger counter = new AtomicInteger(0); // a global counter
+	
+	private static void incrementCounter() {
+          counter.getAndIncrement();
+    }
+	
+	
 	
 	private static String getDomainURL() throws IOException {
          
