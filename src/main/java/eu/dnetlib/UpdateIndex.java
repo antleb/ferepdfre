@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.Properties;
+import java.util.Vector;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -37,12 +38,11 @@ public class UpdateIndex implements Runnable {
 
 	private static final Logger log = LoggerFactory.getLogger(UpdateIndex.class);
 	
-
 	
 	public static void main(String[] args) throws IOException, Exception {
 			
 		 // Multithread
-        ExecutorService service = Executors.newFixedThreadPool(2);
+        ExecutorService service = Executors.newFixedThreadPool(1);
 
     	// Connect to the Index 
 		IndexConfiguration indexConfig =  IndexConfiguration.getInstance();
@@ -61,17 +61,128 @@ public class UpdateIndex implements Runnable {
         Path p = FileSystems.getDefault().getPath(pathToFiles + "metadata/");
         Stream<Path> walk = Files.walk(p);     
         Iterator<Path> iterPath = walk.iterator();
-        
+        int count = 0;
+        int limit = 1000;
+        Vector<Publication> publicationList = new Vector<Publication>();
+        Vector<String> oldMetadataList = new Vector<String>();
+                
         
         while(iterPath.hasNext()) {
-        		Path filePath = iterPath.next();
-		        if (Files.isRegularFile(filePath)) {
-		        	service.submit(new UpdateIndex(filePath, mapper, pathToFiles, urlDomain, index, sha1Calc));		        				        
+        		Path filePath = iterPath.next();        		
+        		if (Files.isRegularFile(filePath)) {
+		        	//service.submit(new UpdateIndex(filePath, mapper, pathToFiles, urlDomain, index, sha1Calc));	
+		        	try {
+		    			log.info("Working on metadata publication file " + filePath);		    		
+		    			File jsonFile = filePath.toFile();
+		    			Publication pub;					        
+		    			pub = mapper.readValue(jsonFile, Publication.class);
+		    			
+		    			String pubID = pub.getOpenaireId();
+		    			
+		    			log.info("Loaded publication object:: " + pub.toString());		    			
+		    			// Get old path to file
+		    			File publicationFileOld = new File(pub.getPathToFile());					
+		    			// Calculate new path to file
+		    			String storePrefix = pubID.substring(0, pubID.lastIndexOf("::"));
+		    			String id = pubID.substring(pubID.lastIndexOf("::")+2);
+		    			String extension = ExtensionResolver.getExtension(pub.getMimeType());
+		    			String relativeFileNew = storePrefix + "/" + id.substring(0, 3) +  "/" + pubID + extension;
+		    			File publicationFileNew = new File(publicationFileOld.getParentFile() + "/" + relativeFileNew);
+		    			
+		    			if (publicationFileOld.exists()) {				
+		    				log.info("Copy file to new location  ::" + publicationFileNew.getAbsolutePath());
+		    				// Create store folder(s)
+		    				File storeFolder = new File(pathToFiles + storePrefix + "/" + id.substring(0, 3));
+		    				if (!storeFolder.exists()) {
+		    					storeFolder.mkdirs();
+		    				}
+		    				// Move to new store folder													
+		    				try {			
+		    					FileUtils.copyFile(publicationFileOld, publicationFileNew);
+		    					publicationFileOld.delete();
+		    				} catch (IOException e) {
+		    					e.printStackTrace();
+		    				}																		
+		    			}
+		    			// Update to new location
+		    			pub.setPathToFile(publicationFileNew.getCanonicalPath());
+		    			
+		    			// Recalculate hash value
+		    			String hashValueSHA1;
+		    			hashValueSHA1 = sha1Calc.getID(FileUtils.readFileToByteArray(publicationFileNew));
+		    			pub.setHashValue(hashValueSHA1);
+		    			
+		    			// Set url
+		    			pub.setUrl(urlDomain + relativeFileNew);
+		    			
+		    			// Add publication to bulk add action list
+		    			log.info("Add publication " + pub.getOpenaireId() + " for bulk add action");
+		    			publicationList.add(pub);		    
+		    			count ++;
+		    			// Add publication metadata old file for deletion
+		    			log.info("Add publication metadata file" + filePath.toString() + " for deletion");
+		    			oldMetadataList.add(filePath.toString());
+		    		
+		    		
+		    	    	// Export Publication in json and save to disk
+		    			log.info("Save publication new metadata file to " + pathToFiles + "metadata_new/" + pubID + ".json");		    			
+		    			Gson gson = new Gson();
+		    			FileWriter fw = new FileWriter(pathToFiles + "metadata_new/" + pubID + ".json");
+		    			gson.toJson(pub, fw);
+		    			fw.close();
+		    			
+		    			// Delete old metadata record. 
+		    			//jsonFile.delete();
+		            }
+		            catch (Exception e) {
+		            	e.printStackTrace();
+		            }
 		        }
+        		if (count == limit && !publicationList.isEmpty()) {
+        			try {
+        				// Add publications to index
+        				log.info("Bulk add action now :: ");
+        				index.addBulkPublications(publicationList);
+        				// Delete metadata
+        				for (String oldMeta : oldMetadataList) {
+        					boolean success = new File(oldMeta).delete();
+        					log.info("Deleting file " + oldMeta + " successfully?" + success) ;
+        				}        				
+        				// Reset counter and lists
+        				count = 0;
+        				publicationList = new Vector<Publication>();       
+        				oldMetadataList = new Vector<String>();
+        				//Thread.sleep(1000);
+        			}catch (Exception e) {
+        				e.printStackTrace();
+     		        }
+        		}
+        		
+		}
+    	if (count > 0 && !publicationList.isEmpty()) {
+    		if (count == limit && !publicationList.isEmpty()) {
+    			try {
+    				// Add publications to index
+    				log.info("Bulk add action now :: ");
+    				index.addBulkPublications(publicationList);
+    				// Delete metadata
+    				for (String oldMeta : oldMetadataList) {
+    					boolean success = new File(oldMeta).delete();
+    					log.info("Deleting file " + oldMeta + " successfully?" + success) ;
+    				}        				
+    				// Reset counter and lists
+    				count = 0;
+    				publicationList = new Vector<Publication>();       
+    				oldMetadataList = new Vector<String>();
+    				//Thread.sleep(1000);
+    			}catch (Exception e) {
+    				e.printStackTrace();
+ 		        }
+    		}
 		}
         walk.close();	
         index.disconnect();
-        log.info("Add in index " + counter + " documents");
+        log.info("Add in index all documents");
 	}
 	
 	public UpdateIndex(Path filePath, ObjectMapper mapper, String pathToFiles, String urlDomain, IndexPublication index, CacheDataIDSHA1 sha1Calc) {
@@ -145,12 +256,14 @@ public class UpdateIndex implements Runnable {
 			// Update publication in index
 			index.addAsyncPublication(pub, pubID); 
 			
-				// Export Publication in json and save to disk
+	    	// Export Publication in json and save to disk
 			Gson gson = new Gson();
 			FileWriter fw = new FileWriter(pathToFiles + "metadata_new/" + pubID + ".json");
 			gson.toJson(pub, fw);
 			fw.close();
 			
+			// Delete old metadata record. 
+			fileOld.delete();
         }
         catch (Exception e) {
         	e.printStackTrace();
@@ -164,7 +277,6 @@ public class UpdateIndex implements Runnable {
 	private static void incrementCounter() {
           counter.getAndIncrement();
     }
-	
 	
 	
 	private static String getDomainURL() throws IOException {
