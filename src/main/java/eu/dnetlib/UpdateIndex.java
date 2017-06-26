@@ -62,7 +62,7 @@ public class UpdateIndex implements Runnable {
         Stream<Path> walk = Files.walk(p);     
         Iterator<Path> iterPath = walk.iterator();
         int count = 0;
-        int limit = 1000;
+        int limit = 2;
         Vector<Publication> publicationList = new Vector<Publication>();
         Vector<String> oldMetadataList = new Vector<String>();
                 
@@ -160,26 +160,21 @@ public class UpdateIndex implements Runnable {
         		
 		}
     	if (count > 0 && !publicationList.isEmpty()) {
-    		if (count == limit && !publicationList.isEmpty()) {
-    			try {
-    				// Add publications to index
-    				log.info("Bulk add action now :: ");
-    				index.addBulkPublications(publicationList);
-    				// Delete metadata
-    				for (String oldMeta : oldMetadataList) {
-    					boolean success = new File(oldMeta).delete();
-    					log.info("Deleting file " + oldMeta + " successfully?" + success) ;
-    				}        				
-    				// Reset counter and lists
-    				count = 0;
-    				publicationList = new Vector<Publication>();       
-    				oldMetadataList = new Vector<String>();
-    				//Thread.sleep(1000);
-    			}catch (Exception e) {
-    				e.printStackTrace();
- 		        }
-    		}
-		}
+	    try {
+		// Add publications to index
+		log.info("Bulk add action now :: ");
+		index.addBulkPublications(publicationList);
+		// Delete metadata
+		for (String oldMeta : oldMetadataList) {
+		    boolean success = new File(oldMeta).delete();
+		    log.info("Deleting file " + oldMeta + " successfully?" + success) ;
+		}        				
+		//Thread.sleep(1000);
+	    }catch (Exception e) {
+		e.printStackTrace();
+	    }
+	
+	}
         walk.close();	
         index.disconnect();
         log.info("Add in index all documents");
