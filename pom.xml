@@ -147,7 +147,7 @@
 			            <mainClass>eu.dnetlib.UpdateIndex2</mainClass>
 			          </transformer>
 			        </transformers>
-			        <finalName>find-files</finalName>			    
+			        <finalName>update-index-without-metadata</finalName>			    
 			      </configuration>  
 			    </execution>
 			  </executions>

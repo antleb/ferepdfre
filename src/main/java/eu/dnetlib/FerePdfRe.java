@@ -98,11 +98,11 @@ public class FerePdfRe {
             EPR epr = EPRUtils.createEPR(w3cEpr);
             String rsId = epr.getParameter("ResourceIdentifier");
             int count = rsService.getNumberOfElements(rsId);
-	    boolean firstDoc = true;
+            boolean firstDoc = true;
 
             for (int i = 0; i < count; i += 1000) {
-		System.out.println(new Date() + "  Getting records " + i + " - " + (i+1000) + "/" + count + " from store " + store);
-		System.out.println("Total size in count ::" + count + 
+            	System.out.println(new Date() + "  Getting records " + i + " - " + (i+1000) + "/" + count + " from store " + store);
+            	System.out.println("Total size in count ::" + count + 
 				   " Total size in Size::" + storeService.getSize(store));
                 List<String> objects = null;
                 int counter =0;
@@ -111,7 +111,7 @@ public class FerePdfRe {
                     try {
                         objects = rsService.getResult(rsId, i, i + 1000, "waiting");
                     } catch (Exception e) {
-			e.printStackTrace();
+                    	e.printStackTrace();
                         counter++;
                     }
                 }

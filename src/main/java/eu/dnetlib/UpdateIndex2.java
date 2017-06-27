@@ -41,72 +41,70 @@ public class UpdateIndex2 {
 	
 	public static void main(String[] args) throws IOException, Exception {
 			
-	/*   	// Connect to the Index 
+	   	// Connect to the Index 
 		IndexConfiguration indexConfig =  IndexConfiguration.getInstance();
 		IndexPublication index = new IndexPublication(indexConfig);
         	              
         String indexName = indexConfig.getIndex();
-        String documentType = indexConfig.getDocumentType();
-      */
+        String documentType = indexConfig.getDocumentType();     
         String pathToFiles = UpdateIndex2.getPathToFiles();
-      /*  String urlDomain = UpdateIndex2.getDomainURL();
+        String urlDomain = UpdateIndex2.getDomainURL();
         CacheDataIDSHA1 sha1Calc = new CacheDataIDSHA1();
         log.info("Connect to index <" + indexName + "> with documents <" + documentType + ">");
-        */
+        
         // Read json files
         log.info("Find out the pdf files in " + pathToFiles);       
         ObjectMapper mapper = new ObjectMapper();
         Path p = FileSystems.getDefault().getPath(pathToFiles);
         Stream<Path> walk = Files.walk(p, 1);     
         Iterator<Path> iterPath = walk.iterator();
-    	FileWriter fw = new FileWriter("/home/gkirtzou/files_in_pdfs.txt");		
-        /*int count = 0;
+    	int count = 0;
         int limit = 2;
-        Vector<Publication> publicationList = new Vector<Publication>();
-        Vector<String> oldMetadataList = new Vector<String>();
-         */      
+        Vector<Publication> publicationList = new Vector<Publication>();                  
         
         while(iterPath.hasNext()) {
         		Path filePath = iterPath.next();        		
         		if (Files.isRegularFile(filePath)) {
-        			/*	
-		        	try {
-		    			log.info("Working on metadata publication file " + filePath);		    		
-		    			File jsonFile = filePath.toFile();
-		    			Publication pub;					        
-		    			pub = mapper.readValue(jsonFile, Publication.class);
+        				
+		        	try {		    			    				    		
+		    			Publication pub = new Publication();				
+		    			File workingPublication = filePath.toFile();
+		    					    			
+		    			// Set publication's id
+		    			String fileName = workingPublication.getName();
+		    			log.info("Working on publication file " + fileName);		
+		    			String pubID = fileName.substring(0, fileName.indexOf("."));
+		    			log.info("pubID  " + pubID);	
+		    			pub.setOpenaireId(pubID);
 		    			
-		    			String pubID = pub.getOpenaireId();
-		    			
-		    			log.info("Loaded publication object:: " + pub.toString());		    			
-		    			// Get old path to file
-		    			File publicationFileOld = new File(pub.getPathToFile());					
+		    			// Set mimetype
+		    			pub.setMimeType("application/pdf");
+		    					    					    				    			    						
 		    			// Calculate new path to file
 		    			String storePrefix = pubID.substring(0, pubID.lastIndexOf("::"));
-		    			String id = pubID.substring(pubID.lastIndexOf("::")+2);
-		    			String extension = ExtensionResolver.getExtension(pub.getMimeType());
+		    			String id = pubID.substring(pubID.lastIndexOf("::")+2);		    			
+		    			String extension = ExtensionResolver.getExtension(pub.getMimeType());		    			
 		    			String relativeFileNew = storePrefix + "/" + id.substring(0, 3) +  "/" + pubID + extension;
-		    			File publicationFileNew = new File(publicationFileOld.getParentFile() + "/" + relativeFileNew);
+		    			File publicationFileNew = new File(workingPublication.getParentFile() + "/" + relativeFileNew);
 		    			
-		    			if (publicationFileOld.exists()) {				
-		    				log.info("Copy file to new location  ::" + publicationFileNew.getAbsolutePath());
-		    				// Create store folder(s)
-		    				File storeFolder = new File(pathToFiles + storePrefix + "/" + id.substring(0, 3));
-		    				if (!storeFolder.exists()) {
-		    					storeFolder.mkdirs();
-		    				}
-		    				// Move to new store folder													
-		    				try {			
-		    					FileUtils.copyFile(publicationFileOld, publicationFileNew);
-		    					publicationFileOld.delete();
-		    				} catch (IOException e) {
-		    					e.printStackTrace();
-		    				}																		
+		    			log.info("Copy file to new location  ::" + publicationFileNew.getAbsolutePath());
+		    			// Create store folder(s)
+		    			File storeFolder = new File(pathToFiles + storePrefix + "/" + id.substring(0, 3));
+		    			if (!storeFolder.exists()) {
+		    				storeFolder.mkdirs();
 		    			}
-		    			// Update to new location
+		    			// Move to new store folder													
+		    			try {			
+		    				FileUtils.copyFile(workingPublication, publicationFileNew);
+		    				workingPublication.delete();
+		    			} catch (IOException e) {
+		    				e.printStackTrace();
+		    			}																		
+		    			
+		    			// Set location to file
 		    			pub.setPathToFile(publicationFileNew.getCanonicalPath());
 		    			
-		    			// Recalculate hash value
+		    			// Calculate hash value
 		    			String hashValueSHA1;
 		    			hashValueSHA1 = sha1Calc.getID(FileUtils.readFileToByteArray(publicationFileNew));
 		    			pub.setHashValue(hashValueSHA1);
@@ -118,68 +116,47 @@ public class UpdateIndex2 {
 		    			log.info("Add publication " + pub.getOpenaireId() + " for bulk add action");
 		    			publicationList.add(pub);		    
 		    			count ++;
-		    			// Add publication metadata old file for deletion
-		    			log.info("Add publication metadata file" + filePath.toString() + " for deletion");
-		    			oldMetadataList.add(filePath.toString());
-		    		
-		    		
+		    					    		
 		    	    	// Export Publication in json and save to disk
 		    			log.info("Save publication new metadata file to " + pathToFiles + "metadata_new/" + pubID + ".json");		    			
 		    			Gson gson = new Gson();
 		    			FileWriter fw = new FileWriter(pathToFiles + "metadata_new/" + pubID + ".json");
 		    			gson.toJson(pub, fw);
 		    			fw.close();
-		    			
-		    			// Delete old metadata record. 
-		    			//jsonFile.delete();
+		    					    			
 		            }
 		            catch (Exception e) {
 		            	e.printStackTrace();
 		            }
-		            */
-        			log.info("Found file :: " + filePath.getFileName());
-        			fw.write(filePath.getFileName() + "\n");
+		           
 		        }
-      /*  		if (count == limit && !publicationList.isEmpty()) {
+        		if (count == limit && !publicationList.isEmpty()) {
         			try {
         				// Add publications to index
         				log.info("Bulk add action now :: ");
-        				index.addBulkPublications(publicationList);
-        				// Delete metadata
-        				for (String oldMeta : oldMetadataList) {
-        					boolean success = new File(oldMeta).delete();
-        					log.info("Deleting file " + oldMeta + " successfully?" + success) ;
-        				}        				
+        				index.addBulkPublications(publicationList);        				      				
         				// Reset counter and lists
         				count = 0;
-        				publicationList = new Vector<Publication>();       
-        				oldMetadataList = new Vector<String>();
-        				//Thread.sleep(1000);
+        				publicationList = new Vector<Publication>();               			
         			}catch (Exception e) {
         				e.printStackTrace();
      		        }
-        		}*/
+        		}
         		
 		}
-    	/*if (count > 0 && !publicationList.isEmpty()) {
+    	if (count > 0 && !publicationList.isEmpty()) {
     		try {
     			// Add publications to index
     			log.info("Bulk add action now :: ");
-    			index.addBulkPublications(publicationList);
-    			// Delete metadata
-    			for (String oldMeta : oldMetadataList) {
-    				boolean success = new File(oldMeta).delete();
-    				log.info("Deleting file " + oldMeta + " successfully?" + success) ;
-    			}        				
+    			index.addBulkPublications(publicationList);    			       				
     			
     		} catch (Exception e) {
     			e.printStackTrace();
     		}
 	
-    	}*/
+    	}
         walk.close();	
-    //    index.disconnect();
-        fw.close();
+        index.disconnect();       
         log.info("No more pdfs");
 	}
 		
