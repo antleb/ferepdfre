@@ -57,7 +57,7 @@ public class UpdateIndex2 {
         log.info("Find out the pdf files in " + pathToFiles);       
         ObjectMapper mapper = new ObjectMapper();
         Path p = FileSystems.getDefault().getPath(pathToFiles);
-        Stream<Path> walk = Files.walk(p);     
+        Stream<Path> walk = Files.walk(p, 1);     
         Iterator<Path> iterPath = walk.iterator();
     	FileWriter fw = new FileWriter("/home/gkirtzou/files_in_pdfs.txt");		
         /*int count = 0;
@@ -69,7 +69,7 @@ public class UpdateIndex2 {
         while(iterPath.hasNext()) {
         		Path filePath = iterPath.next();        		
         		if (Files.isRegularFile(filePath)) {
-		        	/*	
+        			/*	
 		        	try {
 		    			log.info("Working on metadata publication file " + filePath);		    		
 		    			File jsonFile = filePath.toFile();
