@@ -136,7 +136,7 @@
 			      </configuration>  
 			    </execution>
 			     <execution>
-			      <id>build-second</id>
+			      <id>build-third</id>
 			      <phase>package</phase>
 			      <goals>
 			         <goal>shade</goal>
@@ -147,7 +147,7 @@
 			            <mainClass>eu.dnetlib.UpdateIndex2</mainClass>
 			          </transformer>
 			        </transformers>
-			        <finalName>update-index</finalName>			    
+			        <finalName>find-files</finalName>			    
 			      </configuration>  
 			    </execution>
 			  </executions>
